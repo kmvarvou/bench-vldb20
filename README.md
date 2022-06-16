@@ -1,3 +1,7 @@
+# Data Imputation for Business Process Event Logs
+
+The provided code provides a slightly modified version of the code implemented originally in: "Khayati, M., Lerner, A., Tymchenko, Z., Cudr ́e-Mauroux, P.: Mind the gap: An experimental evaluation of imputation of missing values techniques in time series. Proc. VLDB Endow. 13(5), 768–782 (2020)" The original implementation was slightly modified to accomodate for the smaller length of business process event logs, also three new data sets (event log fragments used in the evaluation section of our work) were added.
+
 # ImputeBench:  Benchmark of Imputation Techniques in Time Series  
 
 ImputeBench implements 15 SOTA recovery techniques for blocks of missing values in time series and evaluates their precision and runtime on various real-world time series datasets using different recovery scenarios. Technical details can be found in our 
