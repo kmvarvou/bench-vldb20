@@ -14,7 +14,7 @@ namespace TestingFramework.Testing
         private const int RandomSeed = 18931;
         
         private static (ValueTuple<int, int, int>[], int[]) GetExperimentSetup(ExperimentType et, ExperimentScenario es,
-            int rows, int columns)
+            int rows, int columns, String code)
         {
             int blockSize;
             int startOffset;
@@ -28,6 +28,7 @@ namespace TestingFramework.Testing
                         // single-column
                         case ExperimentScenario.Missing:
                             blockSize = rows / 10;
+                            //Console.Write("AUTO EINAI");
                             return (new[] {(0, -1, -1)}, Utils.ClosedSequence(blockSize, blockSize * 8, blockSize).ToArray());
                         
                         case ExperimentScenario.Length:
@@ -56,8 +57,13 @@ namespace TestingFramework.Testing
                         // single-column
                         case ExperimentScenario.Missing:
                             blockSize = rows / 10;
-                            startOffset = rows / 20;
-                            return (new[] {(0, startOffset, -1)}, Utils.ClosedSequence(blockSize, blockSize * 8, blockSize).ToArray());
+                            //startOffset = rows / 20;
+                            Random r = new Random();
+                            startOffset= r.Next(0, rows-(4*blockSize)-1);
+                            
+                            
+                            
+                            return (new[] {(0, startOffset, -1)}, Utils.ClosedSequence(blockSize, blockSize*4, blockSize).ToArray());
                             
                         case ExperimentScenario.Length:
                             blockSize = rows / 10;
@@ -69,12 +75,17 @@ namespace TestingFramework.Testing
                             blockSize = rows / 10;
                             stepSize = columns / 10;
                             startOffset = rows / 20;
+                            
+                            
                             return (new[] {(0, startOffset, blockSize)}, Utils.ClosedSequence(stepSize >= 4 ? stepSize : 4, columns, stepSize).ToArray());
                             
                         // multi-column
                         case ExperimentScenario.MultiColumnDisjoint:
                             stepSize = columns / 10;
-                            return (new[] {(-1, -1, -1)}, Utils.ClosedSequence(stepSize, stepSize * 10, stepSize).ToArray());
+                            
+                            
+                            
+                            return (new[] {(-1, -1, -1)}, Utils.ClosedSequence(stepSize, stepSize * 10, stepSize).ToArray());//stepsize * 10
                             
                         case ExperimentScenario.MulticolumnOverlap:
                             stepSize = columns / 10;
@@ -106,12 +117,23 @@ namespace TestingFramework.Testing
             }
         }
 
-        
         private static void UpdateMissingBlocks(ExperimentType et, ExperimentScenario es, int rows,
-            int tcase, ref ValueTuple<int, int, int>[] missingBlocks, int columns)
+            int tcase, ref ValueTuple<int, int, int>[] missingBlocks, int columns, int code, String code2)
         {
             int MulticolBlockSize = rows / columns;
-            
+            if(MulticolBlockSize==0)
+            {
+              MulticolBlockSize = rows /10;
+              
+              
+            }
+            string rootDir;
+            string tcase_string;
+            string recoveredMatFile_index;
+            string path;
+            string path_file;
+            FileStream fs;
+            StreamWriter sw;
             switch (et)
             {
                 case ExperimentType.Continuous:
@@ -143,6 +165,28 @@ namespace TestingFramework.Testing
                     {
                         case ExperimentScenario.Missing:
                             missingBlocks[0].Item3 = tcase;
+                            rootDir = DataWorks.FolderPlotsRemote + $"{es.ToLongString()}/{code2}/";
+                            Directory.CreateDirectory(rootDir + "index/");
+                            tcase_string = tcase.ToString();
+                            recoveredMatFile_index = rootDir + "index/" + $"index"+ tcase_string + ".txt";
+                            if (File.Exists(recoveredMatFile_index)) File.Delete(recoveredMatFile_index);
+                            path = rootDir + "index/";
+                            path_file = path + "index" + tcase_string + ".txt";
+                            
+                            fs =  new FileStream(path_file,FileMode.Create, FileAccess.Write, FileShare.Write);
+                            sw=new StreamWriter(path_file, true);
+                            //sw.Write("les");
+                            for(int p=0;p<missingBlocks.Length;p++)
+                            {
+                             for(int i=0;i<missingBlocks[0].Item3;i++)
+                             {
+                              sw.Write("(" + missingBlocks[p].Item1 + ", " + (missingBlocks[p].Item2+i) +")");
+                              sw.Write("\n");   
+                             }                        
+                            }
+                            fs.Close();
+                            sw.Close();
+                            
                             break;
                         
                         case ExperimentScenario.Length:
@@ -153,6 +197,26 @@ namespace TestingFramework.Testing
                         
                         case ExperimentScenario.MultiColumnDisjoint:
                             missingBlocks = Enumerable.Range(0, columns).Select(col => (col, col * MulticolBlockSize, MulticolBlockSize)).Take(tcase).ToArray();
+                            rootDir = DataWorks.FolderPlotsRemote + $"{es.ToLongString()}/{code2}/";
+                            Directory.CreateDirectory(rootDir + "index/");
+                            recoveredMatFile_index = rootDir + "index/" + $"index.txt";
+                            if (File.Exists(recoveredMatFile_index)) File.Delete(recoveredMatFile_index);
+                            path = rootDir + "index/";
+                             path_file = path + "index" + ".txt";
+                            
+                            fs =  new FileStream(path_file,FileMode.Create, FileAccess.Write, FileShare.Write);
+                            sw=new StreamWriter(path_file, true);
+                            //sw.Write("les");
+                            for(int p=0;p<missingBlocks.Length;p++)
+                            {
+                             for(int i=0;i<MulticolBlockSize;i++)
+                             {
+                              sw.Write("(" + missingBlocks[p].Item1 + ", " + (missingBlocks[p].Item2+i) +")");
+                              sw.Write("\n");   
+                             }                        
+                            }
+                            fs.Close();
+                            sw.Close();
                             break;
                         
                         case ExperimentScenario.MulticolumnOverlap:
@@ -168,11 +232,12 @@ namespace TestingFramework.Testing
                             break;
                         
                         case ExperimentScenario.MissingSubMatrix:
-                            const int mcar_block = 10;
+                            
+                            int mcar_block = rows / 10;
                             const int mcar_percentage = 10;
                             List<(int, int, int)> missing2 = new List<(int, int, int)>();
-                            Random r = new Random(RandomSeed);
-
+                            Random r = new Random();
+                            //const int mcar_block_real = 4;
                             int activeColumns = (columns * tcase) / 100; // 10 to 100%
 
                             List<(int, int)> missing = new List<(int, int)>();
@@ -181,26 +246,64 @@ namespace TestingFramework.Testing
 
                             for (int i = 0; i < activeColumns; i++)
                             {
-                                columnIdx.Add(i, Enumerable.Range(0, rows / mcar_block).ToList());
+                                columnIdx.Add(i, Enumerable.Range(0, (rows /mcar_block)-1).ToList());
+                                
                             }
+                            int elegxos = rows/mcar_block;
+                            int elpida = (rows * activeColumns * mcar_percentage) / (rows * mcar_block);
                             
-                            for (int i = 0; i < (rows * activeColumns * mcar_percentage) / (100 * mcar_block); i++) // 100 for percentage adj
+                            
+                            
+                            for (int i = 0; i < (rows * activeColumns) / ( mcar_percentage * mcar_block); i++) // 100 for percentage adj (rows * activeColumns * mcar_percentage) / (rows * mcar_block)
                             {
-                                int col = r.Next(0, columnIdx.Count);
-                                col = columnIdx.Keys.ElementAt(col);
+                                
+                                int po=1;
+                                int col_index=0;
+                                col_index = r.Next(0, columnIdx.Count-1);
+                                int col = columnIdx.Keys.ElementAt(col_index);
                                 int row = r.Next(0, columnIdx[col].Count);
                                 row = columnIdx[col][row];
                                 
-                                for (int j = 0; j < mcar_block; j++)
+                                for (int j = 0; j < mcar_block; j++)//<block_size
                                 {
-                                    missing.Add((col, 10 * row + j));
+                                    missing.Add((col, mcar_block * row + j));
                                 }
-
+                                
                                 columnIdx[col].Remove(row);
-
-                                if (columnIdx[col].Count == 1) columnIdx.Remove(col);
+                                
+                                if (columnIdx[col].Count == 1) //  allagi edo gia to 24_120 apo ==3 (elegxos -1)
+                                {
+                                
+                                columnIdx.Remove(col);
+                                
+                                }
+                                
                             }
-
+                           
+                            if(tcase==100)
+                            {
+                            rootDir = DataWorks.FolderPlotsRemote + $"{es.ToLongString()}/{code2}/";
+                            
+                            
+                            Directory.CreateDirectory(rootDir + "index/");
+                            recoveredMatFile_index = rootDir + "index/" + $"index.txt";
+                            if (File.Exists(recoveredMatFile_index)) File.Delete(recoveredMatFile_index);
+                            path = rootDir + "index/";
+                            path_file = path + "index" + ".txt";
+                            
+                            fs =  new FileStream(path_file,FileMode.Create, FileAccess.Write, FileShare.Write);
+                            sw = new StreamWriter(path_file, true);
+                            
+                            
+                            for(int p=0;p<missing.Count;p++)
+                            {
+                                sw.Write(missing[p]);
+                                sw.Write("\n");                           
+                            }
+                            fs.Close();
+                            sw.Close();
+                            }
+                            
                             missing = missing.OrderBy(x => x.Item1).ThenBy(x => x.Item2).ToList();
                             
                             int currentCol = -1;
@@ -221,7 +324,6 @@ namespace TestingFramework.Testing
                                     else if (lastIdx != row - 1) // jump to the next block
                                     {
                                         missing2.Add((col, blockStart, lastIdx - blockStart + 1));
-
                                         blockStart = lastIdx = row;
                                     }
                                     else
@@ -234,6 +336,7 @@ namespace TestingFramework.Testing
                                     if (blockStart >= 0)
                                     {
                                         missing2.Add((currentCol, blockStart, lastIdx - blockStart + 1));
+                                        
                                     }
 
                                     blockStart = lastIdx = row;
@@ -244,6 +347,7 @@ namespace TestingFramework.Testing
                             if (blockStart >= 0)
                             {
                                 missing2.Add((currentCol, blockStart, lastIdx - blockStart + 1));
+                               
                             }
 
                             missingBlocks = missing2.ToArray();
@@ -367,7 +471,7 @@ namespace TestingFramework.Testing
             
             // forward definitons
             const Experiment ex = Experiment.Precision;
-            (ValueTuple<int, int, int>[] missingBlocks, int[] lengths) = GetExperimentSetup(et, es, nlimit, dataSetColumns);
+            (ValueTuple<int, int, int>[] missingBlocks, int[] lengths) = GetExperimentSetup(et, es, nlimit, dataSetColumns, code);
 
             //
             // create necessary folder structure
@@ -411,8 +515,8 @@ namespace TestingFramework.Testing
                         string adjustedDataSource = $"_.temp/{token}_{code}_{tcase}.txt";
                         dataSource = adjustedDataSource;
                     }
-
-                    UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns);
+                    int codef =0;
+                    UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns,codef,code);
 
                     var (rowRange, columnRange) = GetDataRanges(et, es, nlimit, dataSetColumns, tcase);
                     var data = PrepareDataDescription(et, es, code, nlimit, dataSetColumns, tcase, missingBlocks);
@@ -454,7 +558,8 @@ namespace TestingFramework.Testing
 
             foreach (int tcase in lengths)
             {
-                UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns);
+                int code2 =1;
+                UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns,code2,code);
 
                 string referenceMatrix = $"../{DataWorks.FolderData}{code}/{code}_normal.txt";
                 
@@ -478,7 +583,8 @@ namespace TestingFramework.Testing
             //
             foreach (int tcase in lengths)
             {
-                UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns);
+                int code4=2;
+                UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns,code4,code);
 
                 int offset = (et == ExperimentType.Continuous && es == ExperimentScenario.Length) ? nlimit - tcase : 0;
                 DataWorks.GeneratePrecisionGnuPlot(algorithms, code, nlimit, tcase, missingBlocks, offset);
@@ -496,14 +602,15 @@ namespace TestingFramework.Testing
             //
             
             string rootDir = DataWorks.FolderPlotsRemote + $"{es.ToLongString()}/{code}/";
-            
+
             if (Directory.Exists(rootDir))
             {
                 string tempf;
                 // clean up ONLY precision results
                 if (Directory.Exists(tempf = rootDir + "error/")) Directory.Delete(tempf, true);
                 if (Directory.Exists(tempf = rootDir + "recovery/")) Directory.Delete(tempf, true);
-                if (Directory.Exists(tempf = rootDir + "scripts/precision/")) Directory.Delete(tempf, true);
+                //if (Directory.Exists(tempf = rootDir + "index/")) Directory.Delete(tempf, true);
+                
             }
             else
             {
@@ -522,6 +629,7 @@ namespace TestingFramework.Testing
                 Directory.CreateDirectory(rootDir + "recovery/plots/");
                 Directory.CreateDirectory(rootDir + "recovery/values/");
                 Directory.CreateDirectory(rootDir + "recovery/values/recovered_matrices/");
+                
 
                 // part of path is shared with rt
                 Directory.CreateDirectory(rootDir + "scripts/precision/");
@@ -689,7 +797,7 @@ namespace TestingFramework.Testing
             
             // forward definitons
             const Experiment ex = Experiment.Runtime;
-            (ValueTuple<int, int, int>[] missingBlocks, int[] lengths) = GetExperimentSetup(et, es, nlimit, dataSetColumns);
+            (ValueTuple<int, int, int>[] missingBlocks, int[] lengths) = GetExperimentSetup(et, es, nlimit, dataSetColumns, code);
 
             //
             // create necessary folder structure
@@ -733,8 +841,8 @@ namespace TestingFramework.Testing
                         string adjustedDataSource = $"_.temp/{token}_{code}_{tcase}.txt";
                         dataSource = adjustedDataSource;
                     }
-
-                    UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns);
+                    int code3 =3;
+                    UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns,code3,code);
 
                     var (rowRange, columnRange) = GetDataRanges(et, es, nlimit, dataSetColumns, tcase);
                     var data = PrepareDataDescription(et, es, code, nlimit, dataSetColumns, tcase, missingBlocks);
@@ -849,7 +957,7 @@ namespace TestingFramework.Testing
             
             // forward definitons
             const Experiment ex = Experiment.Runtime;
-            (_, int[] lengths) = GetExperimentSetup(et, es, nlimit, dataSetColumns);
+            (_, int[] lengths) = GetExperimentSetup(et, es, nlimit, dataSetColumns, code);
 
             //
             // create outputs
