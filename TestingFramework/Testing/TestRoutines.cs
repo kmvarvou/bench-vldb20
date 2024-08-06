@@ -60,9 +60,6 @@ namespace TestingFramework.Testing
                             //startOffset = rows / 20;
                             Random r = new Random();
                             startOffset= r.Next(0, rows-(4*blockSize)-1);
-                            
-                            
-                            
                             return (new[] {(0, startOffset, -1)}, Utils.ClosedSequence(blockSize, blockSize*4, blockSize).ToArray());
                             
                         case ExperimentScenario.Length:
@@ -75,16 +72,11 @@ namespace TestingFramework.Testing
                             blockSize = rows / 10;
                             stepSize = columns / 10;
                             startOffset = rows / 20;
-                            
-                            
                             return (new[] {(0, startOffset, blockSize)}, Utils.ClosedSequence(stepSize >= 4 ? stepSize : 4, columns, stepSize).ToArray());
                             
                         // multi-column
                         case ExperimentScenario.MultiColumnDisjoint:
                             stepSize = columns / 10;
-                            
-                            
-                            
                             return (new[] {(-1, -1, -1)}, Utils.ClosedSequence(stepSize, stepSize * 10, stepSize).ToArray());//stepsize * 10
                             
                         case ExperimentScenario.MulticolumnOverlap:
@@ -92,7 +84,7 @@ namespace TestingFramework.Testing
                             return (new[] {(-1, -1, -1)}, Utils.ClosedSequence(stepSize, stepSize * 10, stepSize).ToArray());
                         
                         case ExperimentScenario.MissingSubMatrix:
-                            return (new[] {(-1, -1, -1)}, Utils.ClosedSequence(10, 100, 10).ToArray());
+                            return (new[] {(-1, -1, -1)}, Utils.ClosedSequence(90, 100, 10).ToArray());
                         
                         // full
                         case ExperimentScenario.Fullrow:
@@ -123,10 +115,19 @@ namespace TestingFramework.Testing
             int MulticolBlockSize = rows / columns;
             if(MulticolBlockSize==0)
             {
-              MulticolBlockSize = rows /10;
+              MulticolBlockSize = rows /rows;
               
               
             }
+            if(MulticolBlockSize==0)
+            {
+              MulticolBlockSize = 1;
+              
+              
+            }
+            Console.WriteLine("here2");
+            Console.WriteLine(tcase);
+            Console.WriteLine("here3");
             string rootDir;
             string tcase_string;
             string recoveredMatFile_index;
@@ -232,13 +233,27 @@ namespace TestingFramework.Testing
                             break;
                         
                         case ExperimentScenario.MissingSubMatrix:
-                            
+                            Console.WriteLine("here3");
+                            rootDir = DataWorks.FolderPlotsRemote + $"{es.ToLongString()}/{code}/";
+                            Console.WriteLine(rootDir);
+                            Console.WriteLine(code2);
+                            Console.WriteLine("what");
                             int mcar_block = rows / 10;
-                            const int mcar_percentage = 10;
+                            
+                            Console.WriteLine(mcar_block);
+                            if(mcar_block == 0)
+                            {
+                            mcar_block = 1;
+                            }
+                            const int mcar_percentage = 20;
                             List<(int, int, int)> missing2 = new List<(int, int, int)>();
                             Random r = new Random();
                             //const int mcar_block_real = 4;
                             int activeColumns = (columns * tcase) / 100; // 10 to 100%
+                            if(activeColumns == 0)
+                            {
+                            activeColumns = 1;
+                            }
 
                             List<(int, int)> missing = new List<(int, int)>();
                             
@@ -252,14 +267,20 @@ namespace TestingFramework.Testing
                             int elegxos = rows/mcar_block;
                             int elpida = (rows * activeColumns * mcar_percentage) / (rows * mcar_block);
                             
-                            
-                            
-                            for (int i = 0; i < (rows * activeColumns) / ( mcar_percentage * mcar_block); i++) // 100 for percentage adj (rows * activeColumns * mcar_percentage) / (rows * mcar_block)
+                            int whatever = (rows * activeColumns * mcar_percentage) / 100; 
+                            Console.WriteLine("here4");
+                            Console.WriteLine(whatever);
+                            Console.WriteLine(whatever/mcar_block);
+                            Console.WriteLine("done");
+                            for (int i = 0; i < (whatever) / (mcar_block);  i++) // (rows * activeColumns) / ( mcar_percentage * mcar_block);;;; 100 for percentage adj (rows * activeColumns * mcar_percentage) / (rows * mcar_block)
                             {
                                 
                                 int po=1;
                                 int col_index=0;
-                                col_index = r.Next(0, columnIdx.Count-1);
+                                Console.WriteLine(columnIdx.Count);
+                                Console.WriteLine(tcase);
+                                Console.WriteLine("palkia");
+                                col_index = r.Next(0, columnIdx.Count); //col_index = r.Next(0, columnIdx.Count-1); 
                                 int col = columnIdx.Keys.ElementAt(col_index);
                                 int row = r.Next(0, columnIdx[col].Count);
                                 row = columnIdx[col][row];
@@ -516,6 +537,7 @@ namespace TestingFramework.Testing
                         dataSource = adjustedDataSource;
                     }
                     int codef =0;
+                    Console.WriteLine("here");
                     UpdateMissingBlocks(et, es, nlimit, tcase, ref missingBlocks, dataSetColumns,codef,code);
 
                     var (rowRange, columnRange) = GetDataRanges(et, es, nlimit, dataSetColumns, tcase);
@@ -624,6 +646,7 @@ namespace TestingFramework.Testing
                 Directory.CreateDirectory(rootDir + "error/mae/");
                 Directory.CreateDirectory(rootDir + "error/mse/");
                 Directory.CreateDirectory(rootDir + "error/rmse/");
+                Directory.CreateDirectory(rootDir + "error/mape/");
                 Directory.CreateDirectory(rootDir + "error/plots/");
 
                 Directory.CreateDirectory(rootDir + "recovery/plots/");
